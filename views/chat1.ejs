@@ -1,0 +1,162 @@
+
+<%- include ./header.ejs%>
+<body style="background: gray"><header class="bg-success">
+	<h4>Welcome</h4><strong><%= name %></strong>
+<a href="/logout" class="btn btn-danger"> logout</a>
+</header>
+
+	
+  <main>
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-3">
+          <div class="panel panel-sucess bg-white ">
+            <div class="panel-heading">
+              <h2>Chat Options</h2>
+              <a href="#"> <span id="totalOnline" class="badge badge-success">0</span>  User's Online</a>
+
+
+
+          </div>
+
+            <div class="panel-body " id="scrl1" style="height:470px;overflow-y: scroll;">
+              <ul id="list" type="none"></ul> 
+            </div> 
+          </div>
+        </div>
+        <div class="col-sm-9">
+          <div class="panel panel-success" style=" background: white;">
+             <div class="panel-heading">
+              <h3 id="frndName">Chat Room</h3>
+            </div> 
+            <div class="panel-body" id="scrl2">
+              <p id="loading">Loading..... Please Wait.</p>
+              <p id="noChat">No More Chats To Display.....</p>
+              <p id="initMsg">!!...Click On User To Start Chat...!!</p>
+            
+              <ul id="messages" style="background: white;height:400px"></ul>
+              <span class="pencil_anim" style="display:none">Typing.....</span>
+            </div>
+            <div class="panel-footer">
+              <form id="chatForm" action="" >
+                <input class="write_msg" id="myMsg" class="input-box-send" autocomplete="off" placeholder="Write Message Here.." />
+                <button class="msg_send_btn" id="sendBtn" class="btn btn-success btn-lg"><span class="glyphicon glyphicon-send"></span> <b>Send</b></button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+		
+
+		  
+
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script type="text/javascript">
+	$("document").ready(function () {
+	var socket = io();
+	var username = '<%= name %>';
+	var toUser;
+   // code for connection start
+  socket.on('connect',function(){
+    socket.emit('set-user-data',username);
+   
+  });//end of connection start.
+    // code for displaying online users
+  socket.on('onlineStack',function(stack){
+    $('#list').empty();
+    var totalOnline = 0;
+    for (var user in stack){
+      
+      if(user == username){
+        var txt1 = $('<br><button class="btn btn-sm  " style="width:90%  ">').text(user).css({"font-size":"18px"});
+      }
+      else{
+        var txt1 = $('<br><button id="ubtn" class="btn btn-sm btn-success " style="width:90%  ">').text(user).css({"font-size":"18px"});
+      }
+      
+      if(stack[user] == "Online"){
+        var txt2 = $('<img src="./images/online.png">').text("*"+stack[user]).css({"float":"right", "width": "20px", "height":"18px"});
+        totalOnline++;
+
+      }
+      else{
+        var txt2 = $('<img src="./images/offline.png">').text(stack[user]).css({"float":"right", "width": "18px", "height":"18px"});
+      }
+      //listing all users.
+      $('#list').append($('<li>').append(txt1,txt2));
+      $('#totalOnline').text(totalOnline);
+    }
+    $('#scrl1').scrollTop($('#scrl1').prop("scrollHeight"));
+  }); 
+   //on button click function.
+  $(document).on("click","#ubtn",function(){
+
+     //empty messages.
+    $('#messages').empty();
+    $('#typing').text("");
+    // msgCount = 0;
+    // noChat = 0;
+    // oldInitDone = 0;
+    toUser = $(this).text();
+
+    //showing and hiding relevant information.
+    $('#frndName').text(toUser);
+    $('#initMsg').hide();
+    $('#chatForm').show(); 
+   
+   
+  }); 
+
+
+
+
+   socket.on('typing', function (data) {
+            if (username != data.from) {
+                $(".pencil_anim").show();
+            }
+        });
+        socket.on('stoptyping', function (data) {
+            if (username != data.from) {
+                $(".pencil_anim").hide();
+            }
+        });
+
+        $(".msg_send_btn").on("click", function () {
+            sendMessage();
+        })
+        $(".write_msg").keyup(function (event) {
+            var data = $(".write_msg").val();
+            if (data == null || data == "") {
+                socket.emit('stoptyping', {
+                    from: username
+                });
+                return;
+            }
+            socket.emit('typing', {
+                from: username
+            });
+            if (event.which == 13) {
+                sendMessage()
+            }
+        })
+
+        function sendMessage() {
+            var data = $(".write_msg").val();
+            socket.emit('message', {
+                from: username,
+                to: toUser,
+                msg: data
+            });
+            $(".write_msg").val("");
+        }
+    });
+
+</script>
+
+
+</body>

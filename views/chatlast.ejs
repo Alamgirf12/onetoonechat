@@ -1,0 +1,231 @@
+
+<%- include ./header.ejs%>
+<body><center class="bg-primary" >
+  <h4>Welcome</h4><strong><%= name %></strong>
+
+<a href="/logout" class="btn btn-danger"> logout</a>
+ 
+</center>
+
+  
+  <main>
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-3">
+          <div class="card card-sucess bg-success text-center ">
+            <div class="card-heading">
+              <h2>Chat Options</h2>
+              <a href="#" class="text-white"> <span id="totalOnline" class="badge badge-danger">0</span>  User's Online</a>
+          </div>
+
+            <div class="card-body bg-dark " id="scrl1" style="height:480px;overflow-y: scroll;">
+              <ul id="list" type="none"></ul> 
+            </div> 
+          </div>
+        </div>
+        <div class="col-sm-9">
+          <div class="card card-success" style=" background: white;">
+             <div class="card-heading bg-success text-danger text-center">
+              <h3 id="frndName">Chat Room</h3><p id="typings" style="font-size: 12px"></p>  
+          
+            </div>
+            
+            <div class="card-body" id="scrl2" style="height:">
+              <p id="loading" class="text-center" style="display: none">Loading..... Please Wait.</p>
+              <p id="noChat" class="text-center" style="display: none">No More Chats To Display.....</p>
+              <h2 id="initMsg" class="text-center">!!...Click On User To Start Chat...!!</h2>
+            
+              <ul id="messages" type="none" style="height:370px;overflow-y: scroll;">
+                
+
+              </ul>
+  
+             
+            </div>
+            <div class="card-footer" >
+                          
+              <div id="chatForm" style="display: none ">
+                <input id="myMsg" class="input-box-send" autocomplete="off" placeholder="Write Message Here.." required style="width:90%" />
+                <button id="sendBtn" class="btn btn-success btn-sm"><span class="glyphicon glyphicon-send"></span> <b>Send</b></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <div class="footer bg-primary fixed-bottom">sk</div>
+
+    
+
+      
+
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script type="text/javascript">
+  $("document").ready(function () {
+  var socket = io();
+  $('#sendBtn').hide();
+  var username = '<%= name %>';
+  var toUser;
+  var msgCount = 0;
+      $('#sendBtn').hide(); 
+   // code for connection start
+  socket.on('connect',function(){
+    socket.emit('set-user-data',username);
+   
+  });//end of connection start.
+    // code for displaying online users
+  socket.on('onlineStack',function(stack){
+    $('#list').empty();
+    var totalOnline = 0;
+    for (var user in stack){
+      
+      if(user == username){
+        var txt1 = $('<br><button class="btn btn-sm  " style="width:80%  ">').text(user).css({"font-size":"18px"});
+      }
+      else{
+        var txt1 = $('<br><button id="ubtn" class="btn btn-sm btn-success " style="width:80%  ">').text(user).css({"font-size":"18px"});
+      }
+      
+      if(stack[user] == "Online"){
+        var txt2 = $('<img src="./images/online.png">').text("*"+stack[user]).css({"float":"right", "width": "20px", "height":"18px"});
+        totalOnline++;
+
+
+      }
+      else{
+        var txt2 = $('<img src="./images/offline.png">').text(stack[user]).css({"float":"right", "width": "18px", "height":"18px"});
+      }
+      //listing all users.
+      $('#list').append($('<li>').append(txt1,txt2));
+      $('#totalOnline').text(totalOnline);
+    }
+     $('#scrl1').scrollTop($('#scrl1').prop("scrollHeight"));
+
+  }); 
+   //on button click function.
+  $(document).on("click","#ubtn",function(){
+
+     //empty messages.
+    $('#messages').empty();
+    $('#typing').text("");
+    msgCount = 0;
+    noChat = 0;
+    oldInitDone = 0;
+    toUser = $(this).text();
+
+    //showing and hiding relevant information.
+    $('#frndName').text(toUser);
+    $('#initMsg').hide();
+    $('#chatForm').show(); 
+    socket.emit('set-room',{username,toUser})
+   
+   
+  }); 
+  $('#myMsg').keyup(function(){
+   if($('#myMsg').val()){
+      $('#sendBtn').show(); 
+      socket.emit('typing',{username,toUser});
+    }
+    else{
+      $('#sendBtn').hide(); 
+    }
+  });
+
+ 
+
+
+
+
+  
+   socket.on('message',function(msg){
+        if(msg.uname == toUser ){
+        
+   
+        $('#messages').show();
+          var chatDate = 'just a second ago';
+          var txt1 = $('<b></b>').text(msg.uname+" : ").css({"color":"green","font-size":"16px"});
+          var txt2 = $('<p></p>').text(chatDate).css({"float":"right","color":"white","font-size":"16px"});
+          var txt3 = $('<p></p>').append(txt1,txt2);
+          var txt4 = $('<p></p>').text(msg.mss).css({"color":"green","font-size":"18px"});
+          
+          $('#messages').append($('<li style="background:grey;">').append(txt3,txt4));
+          msgCount++;
+    } else if(msg.uname == username){
+   
+   
+        $('#messages').show();
+          var chatDate = 'just a second ago';
+          var txt1 = $('<span></span>').text(msg.toUser+" : ").css({"color":"red","font-size":"16px"});
+          var txt2 = $('<span></span>').text(chatDate).css({"float":"right","color":"white","font-size":"16px"});
+          var txt3 = $('<p></p>').append(txt1,txt2);
+          var txt4 = $('<p></p>').text(msg.mss).css({"color":"","font-size":"18px"});
+          
+          $('#messages').append($('<li style="background:mediumseagreen;">').append(txt3,txt4));
+          msgCount++;
+
+    }
+  });
+
+
+
+  
+   socket.on('typing',function(msg){
+        if(msg.uname == toUser &&  msg.toUser == username ){
+          // alert("he is typing"+msg.uname+"............."+msg.toUser)
+    var setTime;
+    clearTimeout(setTime);
+    $('#typings').text(msg.mss);
+    setTime = setTimeout(function(){
+      $('#typings').text("Stop Typing");
+    },1000);}
+  });
+
+
+
+
+
+  $('#myMsg').keyup(function(){
+   if($('#myMsg').val()){
+      $('#sendBtn').show(); 
+      socket.emit('typing',{username,toUser});
+    }
+    else{
+      $('#sendBtn').hide(); 
+    }
+  });
+
+ 
+ 
+
+$("#sendBtn").on("click", function () {
+            sendMessage();
+
+        })
+      
+
+        function sendMessage() {
+            var data = $("#myMsg").val();
+            if(data.length > 1){
+            socket.emit('message', {username,toUser,data});
+            $("#myMsg").val("");
+            return false;
+        }}
+    });
+
+
+
+</script>
+
+
+</body>
+
+
+
+
+
+
+
